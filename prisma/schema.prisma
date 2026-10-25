@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           Int                @id @default(autoincrement())
+  name         String?
+  email        String             @unique
+  passwordHash String
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  memberships  RestaurantMember[]
+}
+
+model Restaurant {
+  id          Int                @id @default(autoincrement())
+  name        String
+  slug        String             @unique
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  menuGroups  MenuGroup[]
+  menuItems   MenuItem[]
+  qrCodes     QRCode[]
+  memberships RestaurantMember[]
+}
+
+model RestaurantMember {
+  id           Int        @id @default(autoincrement())
+  userId       Int
+  restaurantId Int
+  role         String
+  createdAt    DateTime   @default(now())
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, restaurantId])
+  @@index([restaurantId])
+}
+
+model MenuGroup {
+  id           Int        @id @default(autoincrement())
+  restaurantId Int
+  name         String
+  slug         String
+  sortOrder    Int        @default(0)
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  menuItems    MenuItem[]
+
+  @@unique([restaurantId, slug])
+  @@index([restaurantId])
+}
+
+model MenuItem {
+  id           Int        @id @default(autoincrement())
+  restaurantId Int
+  menuGroupId  Int
+  name         String
+  description  String?
+  price        Decimal    @db.Decimal(10, 2)
+  imageUrl     String?
+  sortOrder    Int        @default(0)
+  isAvailable  Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  menuGroup    MenuGroup  @relation(fields: [menuGroupId], references: [id], onDelete: Cascade)
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@index([restaurantId])
+  @@index([menuGroupId])
+  @@index([restaurantId, menuGroupId])
+}
+
+model QRCode {
+  id           Int        @id @default(autoincrement())
+  restaurantId Int
+  name         String
+  code         String     @unique
+  createdAt    DateTime   @default(now())
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@index([restaurantId])
+}
